@@ -12,6 +12,7 @@ type SrvFound struct {
 	router     *SrvFoundRoute
 	remoteNode map[string]*SrvNodeInfo
 	localNode  *SrvNodeInfo
+	group      string
 }
 
 func NewSrvFound() *SrvFound {
@@ -22,15 +23,19 @@ func NewSrvFound() *SrvFound {
 	localNode.Ip = node.Addr()
 	localNode.Enable = true
 
-	return &SrvFound{
+	sf := &SrvFound{
 		node:       node,
 		localNode:  localNode,
 		router:     NewSrvFoundRoute(),
 		remoteNode: make(map[string]*SrvNodeInfo),
+		group:      "srv_found",
 	}
+
+	sf.listenSrv(sf.group)
+	return sf
 }
 
-func (self *SrvFound) ListenSrv(srv string) error {
+func (self *SrvFound) listenSrv(srv string) error {
 	self.node.HandlerFunc(srv, []sn.StarNodeEventType{sn.EventExit}, self.srvNodeLeave)
 
 	self.node.HandlerFunc(srv, []sn.StarNodeEventType{sn.EventWhisper}, self.srvNodeShout)
@@ -43,7 +48,7 @@ func (self *SrvFound) ListenSrv(srv string) error {
 	return nil
 }
 
-func (self *SrvFound) srvNodeJoin(n *sn.StarNode, req *sn.StarNodeRequest) {
+func (self *SrvFound) srvNodeJoin(req *sn.StarNodeRequest) {
 
 	if node, ok := self.remoteNode[req.Client]; ok {
 		node.Enable = true
@@ -62,17 +67,17 @@ func (self *SrvFound) srvNodeJoin(n *sn.StarNode, req *sn.StarNodeRequest) {
 	}
 }
 
-func (self *SrvFound) srvNodeLeave(n *sn.StarNode, req *sn.StarNodeRequest) {
+func (self *SrvFound) srvNodeLeave(req *sn.StarNodeRequest) {
 	if node, ok := self.remoteNode[req.Client]; ok {
-		// node.Enable = false
-		// self.remoteNode[req.Client]
-
-		self.router.RemoveSrvNode(node)
+		for _, srv := range node.Srv {
+			self.router.RemoveSrv(srv)
+		}
+		// self.router.RemoveSrv(node)
 		delete(self.remoteNode, req.Client)
 	}
 }
 
-func (self *SrvFound) srvNodeShout(n *sn.StarNode, req *sn.StarNodeRequest) {
+func (self *SrvFound) srvNodeShout(req *sn.StarNodeRequest) {
 
 	node := NewSrvNodeInfo()
 
@@ -84,12 +89,18 @@ func (self *SrvFound) srvNodeShout(n *sn.StarNode, req *sn.StarNodeRequest) {
 
 	fmt.Printf("recv shout msg: %s\n", string(req.Msg))
 	fmt.Printf("node: %+v\n", node)
-	self.router.HandleSrvNode(node)
+
 	self.remoteNode[req.Client] = node
+	self.handleSrvNode(node)
+
 }
 
-func (self *SrvFound) GetSrv(srvName string, uri string) ([]*SrvInfo, error) {
-	return self.router.SrvNode(srvName, uri)
+func (self *SrvFound) handleSrvNode(n *SrvNodeInfo) {
+
+	for _, srv := range n.Srv {
+		self.router.SetSrv(srv)
+	}
+
 }
 
 func (self *SrvFound) Addr() string {
@@ -100,17 +111,20 @@ func (self *SrvFound) Nodes() map[string]*SrvNodeInfo {
 	return self.remoteNode
 }
 
-//
-func (self *SrvFound) SetSrv(srvName string, ip string, port int, uri []string) error {
+func (self *SrvFound) GetSrv(srvName string) ([]*SrvInfo, error) {
+	return self.router.GetSrv(srvName)
+}
 
-	self.localNode.SetSrv(srvName, ip, port, uri)
+func (self *SrvFound) SetSrv(srvName string, addr string) error {
+
+	self.localNode.SetSrv(srvName, addr)
 	self.localNode.SrvEnable = true
 
 	byt, e := json.Marshal(self.localNode)
 	if e != nil {
 		return e
 	}
-	fmt.Printf("localNode: %+v, shout msg:%s\n", self.localNode, string(byt))
-	self.node.Shout(srvName, byt)
+	// fmt.Printf("localNode: %+v, shout msg:%s\n", self.localNode, string(byt))
+	self.node.Shout(self.group, byt)
 	return nil
 }

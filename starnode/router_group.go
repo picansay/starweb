@@ -2,28 +2,28 @@ package starnode
 
 import (
 	"errors"
-	"fmt"
+	// "fmt"
 )
 
 type StarNodeGroupRoute struct {
-	r map[string]func(node *StarNode, req *StarNodeRequest)
+	r map[string]func(req *StarNodeRequest)
 }
 
 func NewStarNodeGroupRoute() *StarNodeGroupRoute {
-	return &StarNodeGroupRoute{r: make(map[string]func(*StarNode, *StarNodeRequest))}
+	return &StarNodeGroupRoute{r: make(map[string]func(*StarNodeRequest))}
 }
 
-func (self *StarNodeGroupRoute) Handler(node *StarNode, req *StarNodeRequest) {
+func (self *StarNodeGroupRoute) Handler(req *StarNodeRequest) {
 	// fmt.Println("start handler--")
 	if req.Method != EventShout {
 		return
 	}
-	fmt.Println(">>>in Group handler", "node:", req.Client, "group:", req.Group)
+	// fmt.Println(">>>in Group handler", "node:", req.Client, "group:", req.Group)
 	if req.Group == "" {
 		return
 	}
 
-	var f func(node *StarNode, req *StarNodeRequest)
+	var f func(req *StarNodeRequest)
 
 	if hf, ok := self.r[req.Group]; ok {
 		f = hf
@@ -31,10 +31,10 @@ func (self *StarNodeGroupRoute) Handler(node *StarNode, req *StarNodeRequest) {
 		f = NotFound
 	}
 
-	f(node, req)
+	f(req)
 }
 
-func (self *StarNodeGroupRoute) HandlerFunc(group string, method StarNodeEventType, f func(node *StarNode, req *StarNodeRequest)) error {
+func (self *StarNodeGroupRoute) HandlerFunc(group string, method StarNodeEventType, f func(req *StarNodeRequest)) error {
 	if method != EventShout {
 		return errors.New("shout method error!")
 	}

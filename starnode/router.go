@@ -5,25 +5,17 @@ import (
 	"fmt"
 )
 
-func NotFound(node *StarNode, req *StarNodeRequest) {
+func NotFound(req *StarNodeRequest) {
 	fmt.Println("star node api not found! req: ", req)
 }
 
-// func NotFoundHandler() StarNodeHandler { return HandlerFunc(NotFound) }
-
-// type HandlerFunc func(node *StarNode, req *StarNodeRequest) error
-
-// func (f HandlerFunc) Handler(node *StarNode, req *StarNodeRequest) {
-// 	f(node, req)
-// }
-
 type StarNodeHandler interface {
-	Handler(node *StarNode, req *StarNodeRequest)
+	Handler(req *StarNodeRequest)
 }
 
 type StarNodeRouter interface {
-	HandlerFunc(uri string, method StarNodeEventType, f func(*StarNode, *StarNodeRequest)) error
-	Handler(node *StarNode, req *StarNodeRequest)
+	HandlerFunc(uri string, method StarNodeEventType, f func(*StarNodeRequest)) error
+	Handler(req *StarNodeRequest)
 }
 
 type StarNodeRoute struct {
@@ -42,17 +34,17 @@ func NewStarNodeRoute() *StarNodeRoute {
 	return &StarNodeRoute{r: r}
 }
 
-func (self *StarNodeRoute) Handler(node *StarNode, req *StarNodeRequest) {
+func (self *StarNodeRoute) Handler(req *StarNodeRequest) {
 
 	if r, ok := self.r[req.Method]; !ok {
-		NotFound(node, req)
+		NotFound(req)
 	} else {
-		r.Handler(node, req)
+		r.Handler(req)
 	}
 
 }
 
-func (self *StarNodeRoute) HandlerFunc(uri string, method StarNodeEventType, f func(node *StarNode, req *StarNodeRequest)) error {
+func (self *StarNodeRoute) HandlerFunc(uri string, method StarNodeEventType, f func(req *StarNodeRequest)) error {
 
 	if r, ok := self.r[method]; ok {
 

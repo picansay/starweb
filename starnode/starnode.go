@@ -126,7 +126,7 @@ func (self *StarNode) UUID() string {
 	return self.node.UUID()
 }
 
-func (self *StarNode) HandlerFunc(uri string, methods []StarNodeEventType, f func(node *StarNode, req *StarNodeRequest)) error {
+func (self *StarNode) HandlerFunc(uri string, methods []StarNodeEventType, f func(req *StarNodeRequest)) error {
 	var e error
 	fmt.Println("hf: ", uri, methods, f)
 	for _, method := range methods {
@@ -182,8 +182,8 @@ func (self *StarNode) eventRecv(e *gyre.Event) {
 
 	}
 	// fmt.Printf("recv total: %+v\n", req)
-	node := self
-	self.r.Handler(node, &req)
+	// node := self
+	self.r.Handler(&req)
 }
 func (self *StarNode) Server() {
 	fmt.Println("set starnode ready!")

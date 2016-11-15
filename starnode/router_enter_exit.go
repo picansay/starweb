@@ -7,14 +7,14 @@ import (
 )
 
 type StarNodeEnterExitRoute struct {
-	r []func(*StarNode, *StarNodeRequest)
+	r []func(*StarNodeRequest)
 }
 
 func NewStarNodeEnterExitRoute() *StarNodeEnterExitRoute {
 	return &StarNodeEnterExitRoute{}
 }
 
-func (self *StarNodeEnterExitRoute) Handler(node *StarNode, req *StarNodeRequest) {
+func (self *StarNodeEnterExitRoute) Handler(req *StarNodeRequest) {
 	// if req.Method != EventJoin {
 	// 	return
 	// }
@@ -22,11 +22,11 @@ func (self *StarNodeEnterExitRoute) Handler(node *StarNode, req *StarNodeRequest
 	// fmt.Println(">>>in join handler", "node:", req.Client, "group:", req.Group)
 	// var f func(*StarNode, *StarNodeRequest)
 	for _, f := range self.r {
-		f(node, req)
+		f(req)
 	}
 }
 
-func (self *StarNodeEnterExitRoute) HandlerFunc(uri string, method StarNodeEventType, f func(*StarNode, *StarNodeRequest)) error {
+func (self *StarNodeEnterExitRoute) HandlerFunc(uri string, method StarNodeEventType, f func(*StarNodeRequest)) error {
 	// if method != EventJoin {
 	// 	return errors.New("join method error!")
 	// }

@@ -2,29 +2,29 @@ package starnode
 
 import (
 	"errors"
-	"fmt"
+	// "fmt"
 )
 
 type StarNodeWhisperRoute struct {
-	r map[string]func(*StarNode, *StarNodeRequest)
+	r map[string]func(*StarNodeRequest)
 }
 
 func NewStarNodeWhisperRoute() *StarNodeWhisperRoute {
-	return &StarNodeWhisperRoute{r: make(map[string]func(*StarNode, *StarNodeRequest))}
+	return &StarNodeWhisperRoute{r: make(map[string]func(*StarNodeRequest))}
 }
 
-func (self *StarNodeWhisperRoute) Handler(node *StarNode, req *StarNodeRequest) {
+func (self *StarNodeWhisperRoute) Handler(req *StarNodeRequest) {
 	if req.Method != EventWhisper {
 		return
 	}
 	// fmt.Println(">>>in Whisper handler")
-	fmt.Println(self.r)
-	fmt.Println(">>>in Whisper handler", "node:", req.Client, "uri:", req.Uri)
+	// fmt.Println(self.r)
+	// fmt.Println(">>>in Whisper handler", "node:", req.Client, "uri:", req.Uri)
 	if req.Uri == "" {
 		return
 	}
 
-	var f func(*StarNode, *StarNodeRequest)
+	var f func(*StarNodeRequest)
 
 	if hf, ok := self.r[req.Uri]; !ok {
 		f = NotFound
@@ -32,10 +32,10 @@ func (self *StarNodeWhisperRoute) Handler(node *StarNode, req *StarNodeRequest) 
 		f = hf
 	}
 
-	f(node, req)
+	f(req)
 }
 
-func (self *StarNodeWhisperRoute) HandlerFunc(uri string, method StarNodeEventType, f func(*StarNode, *StarNodeRequest)) error {
+func (self *StarNodeWhisperRoute) HandlerFunc(uri string, method StarNodeEventType, f func(*StarNodeRequest)) error {
 	if method != EventWhisper {
 		return errors.New("EventWhisper method error!")
 	}
