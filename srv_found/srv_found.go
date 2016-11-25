@@ -8,11 +8,13 @@ import (
 )
 
 type SrvFound struct {
-	node       *sn.StarNode
-	router     *SrvFoundRoute
-	remoteNode map[string]*SrvNodeInfo
-	localNode  *SrvNodeInfo
-	group      string
+	node           *sn.StarNode
+	router         *SrvFoundRoute
+	remoteNode     map[string]*SrvNodeInfo
+	localNode      *SrvNodeInfo
+	srvJoinAction  map[string]func(srv *SrvInfo)
+	srvLeaveAction map[string]func(srv *SrvInfo)
+	group          string
 }
 
 func NewSrvFound() *SrvFound {
@@ -24,11 +26,13 @@ func NewSrvFound() *SrvFound {
 	localNode.Enable = true
 
 	sf := &SrvFound{
-		node:       node,
-		localNode:  localNode,
-		router:     NewSrvFoundRoute(),
-		remoteNode: make(map[string]*SrvNodeInfo),
-		group:      "srv_found",
+		node:           node,
+		localNode:      localNode,
+		router:         NewSrvFoundRoute(),
+		remoteNode:     make(map[string]*SrvNodeInfo),
+		srvJoinAction:  make(map[string]func(srv *SrvInfo)),
+		srvLeaveAction: make(map[string]func(srv *SrvInfo)),
+		group:          "srv_found",
 	}
 
 	sf.listenSrv(sf.group)
@@ -71,6 +75,9 @@ func (self *SrvFound) srvNodeLeave(req *sn.StarNodeRequest) {
 	if node, ok := self.remoteNode[req.Client]; ok {
 		for _, srv := range node.Srv {
 			self.router.RemoveSrv(srv)
+			if actionFun, ok := self.srvLeaveAction[srv.SrvName]; ok {
+				actionFun(srv)
+			}
 		}
 		// self.router.RemoveSrv(node)
 		delete(self.remoteNode, req.Client)
@@ -99,8 +106,21 @@ func (self *SrvFound) handleSrvNode(n *SrvNodeInfo) {
 
 	for _, srv := range n.Srv {
 		self.router.SetSrv(srv)
+		if actionFun, ok := self.srvJoinAction[srv.SrvName]; ok {
+			actionFun(srv)
+		}
 	}
 
+}
+
+func (self *SrvFound) ListenSrv(srvName string, joinFunc func(*SrvInfo), leaveFunc func(*SrvInfo)) {
+	if joinFunc != nil {
+		self.srvJoinAction[srvName] = joinFunc
+	}
+
+	if leaveFunc != nil {
+		self.srvLeaveAction[srvName] = joinFunc
+	}
 }
 
 func (self *SrvFound) Addr() string {
